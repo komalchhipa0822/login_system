@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\{ProfileController};
+use App\Http\Controllers\{ProfileController,ChangePasswordController};
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 
@@ -28,8 +28,20 @@ Route::middleware('auth')->group(function () {
 
 	Route::resources([
         'profile' => ProfileController::class,
+        'change-password'=> ChangePasswordController::class,
     ]);
+
+    /* Product Route */
+    Route::group(['prefix' => 'change-password'], function () {
+        Route::post('/old-password-check', [ChangePasswordController::class, 'oldPasswordCheck']);
+        
+    });
     
+
+     /* Product Route */
+    Route::group(['prefix' => 'profile'], function () {
+        Route::post('/get-degination', [ProfileController::class, 'get_degination']);
+    });
     // Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     // Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     // Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

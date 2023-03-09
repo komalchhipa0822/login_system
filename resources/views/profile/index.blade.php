@@ -1,6 +1,7 @@
 @extends('layout.master')
 @section('title',"Profile")
 @push('plugin-styles')
+<link href="{{ asset('assets/plugins/select2/select2.min.css') }}" rel="stylesheet" />
   <link href="{{ asset('assets/plugins/bootstrap-datepicker/css/bootstrap-datepicker.min.css') }}" rel="stylesheet" />
 @endpush
 
@@ -22,12 +23,12 @@
           <div class="card">
             <div class="card-body profile-card pt-4 d-flex flex-column align-items-center">
                @if(empty(Auth::user()->image))
-              <img src="assets/img/profile-img.jpg" alt="Profile" class="rounded-circle">
+              <img src="assets/img/admin_logo.png" alt="Profile" class="rounded-circle">
               @else
               <img src="{{ asset('images/users/profile/'. Auth::user()->image) }}" alt="Profile" class="rounded-circle">
             @endif
               <h2>{{ ucwords(Auth::user()->prefix).'.'.Auth::user()->first_name.' '. Auth::user()->last_name }}</h2>
-              <!-- <h3>Web Designer</h3> -->
+              <h3>{{ (!empty($data['user']->designation)) ? $data['user']->designation->name : ''}}</h3>
               <!-- <div class="social-links mt-2">
                 <a href="#" class="twitter"><i class="bi bi-twitter"></i></a>
                 <a href="#" class="facebook"><i class="bi bi-facebook"></i></a>
@@ -61,27 +62,36 @@
                 </li>
 
               </ul>
+              @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+              @endif
+              @if (session('success'))
+              <div class="alert alert-success alert-dismissible fade show" role="alert">
+               {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+              @endif
               <div class="tab-content pt-2">
 
                 <div class="tab-pane fade show active profile-overview" id="profile-overview">
-                  <h5 class="card-title">About</h5>
-                  <p class="small fst-italic">Sunt est soluta temporibus accusantium neque nam maiores cumque temporibus. Tempora libero non est unde veniam est qui dolor. Ut sunt iure rerum quae quisquam autem eveniet perspiciatis odit. Fuga sequi sed ea saepe at unde.</p>
 
+                  @if(!empty(Auth::user()->about))
+                  <h5 class="card-title">About</h5>
+                  <p class="small fst-italic">{{ Auth::user()->about }}</p>
+                  @endif
                   <h5 class="card-title">Profile Details</h5>
 
                   <div class="row">
                     <div class="col-lg-3 col-md-4 label ">Full Name</div>
-                    <div class="col-lg-9 col-md-8">{{ ucwords(Auth::user()->prefix).'.'.Auth::user()->first_name.' '. Auth::user()->last_name }}</div>
+                    <div class="col-lg-9 col-md-8">{{ ucwords(Auth::user()->prefix).'.'.Auth::user()->first_name.' '. Auth::user()->middle_name.' '. Auth::user()->last_name }}</div>
                   </div>
 
                   <div class="row">
                     <div class="col-lg-3 col-md-4 label">Job</div>
-                    <div class="col-lg-9 col-md-8">Web Designer</div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-lg-3 col-md-4 label">Country</div>
-                    <div class="col-lg-9 col-md-8">INDIA</div>
+                    <div class="col-lg-9 col-md-8">{{ (!empty($data['user']->designation)) ? $data['user']->designation->name : ''}}</div>
                   </div>
 
                   <div class="row">
@@ -104,101 +114,147 @@
                 <div class="tab-pane fade profile-edit pt-3" id="profile-edit">
 
                   <!-- Profile Edit Form -->
-                  <form>
+                  <form action="{{ route('profile.update',Auth::user()->id) }}" method="POST" id="edit_profile_form" enctype="multipart/form-data">
+                     @csrf
+                     @method('PUT')
                     <div class="row mb-3">
                       <label for="profileImage" class="col-md-4 col-lg-3 col-form-label">Profile Image</label>
                       <div class="col-md-8 col-lg-9">
-                        <img src="assets/img/profile-img.jpg" alt="Profile">
+                         @php
+                            $image='';
+                            if(!empty(Auth::user()->image))
+                            {
+                              $image='images/users/profile/'. Auth::user()->image;
+                            }
+                            else
+                            {
+                              $image='assets/img/admin_logo.png';
+                            }
+                        @endphp
+                        <img src="{{ asset($image) }}" class="profile_image" alt="Profile">
+                       
                         <div class="pt-2">
-                          <a href="#" class="btn btn-primary btn-sm" title="Upload new profile image"><i class="bi bi-upload"></i></a>
-                          <a href="#" class="btn btn-danger btn-sm" title="Remove my profile image"><i class="bi bi-trash"></i></a>
+                          <input type="file" name="image" onchange="loadFile(event)" id="imgupload" style="display:none"/> 
+                          <a class="btn btn-primary btn-sm" id="OpenImgUpload" title="Upload new profile image"><i class="bi bi-upload"></i></a>
+                          <a class="btn btn-danger btn-sm remove_profile_img" title="Remove my profile image"><i class="bi bi-trash"></i></a>
+                          <input type="hidden" name="remove_img" class="remove_img" value="0">
                         </div>
                       </div>
                     </div>
 
                     <div class="row mb-3">
-                      <label for="fullName" class="col-md-4 col-lg-3 col-form-label">Full Name</label>
+                      <label for="fullName" class="col-md-4 col-lg-3 col-form-label">Prefix<span class="text-danger"> * </span></label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="fullName" type="text" class="form-control" id="fullName" value="Kevin Anderson">
+                         @php
+                            $prefixes=['Mr','Mrs','Miss','Dr','Er']
+                        @endphp
+                          <select class="form-select form-control select2" id="prefix" name="prefix" placeholder="Select prefix" required>
+                              <option selected disabled class="input-cstm">Please Select</option>
+                              @foreach ($prefixes as $prefix)
+                              <option @if(Auth::user()->prefix==$prefix) selected @endif value="{{ $prefix }}">{{ $prefix }}</option>
+                              @endforeach
+                          </select>
+                      </div>
+                    </div>
+                    <div class="row mb-3">
+                      <label for="fullName" class="col-md-4 col-lg-3 col-form-label">First Name<span class="text-danger"> * </span></label>
+                      <div class="col-md-8 col-lg-9">
+                        <input type="text" class="form-control" name="first_name" id="first_name"  autocomplete="off" placeholder="Enter First Name" value="{{ Auth::user()->first_name }}" required>
+                      </div>
+                    </div>
+                    <div class="row mb-3">
+                      <label for="fullName" class="col-md-4 col-lg-3 col-form-label">Middle Name<span class="text-danger"> * </span></label>
+                      <div class="col-md-8 col-lg-9">
+                        <input type="text" class="form-control" name="middle_name" id="middle_name" autocomplete="off" placeholder="Enter middle Name" value="{{ Auth::user()->middle_name }}" required>
+                      </div>
+                    </div>
+                    <div class="row mb-3">
+                      <label for="fullName" class="col-md-4 col-lg-3 col-form-label">Last Name<span class="text-danger"> * </span></label>
+                      <div class="col-md-8 col-lg-9">
+                          <input type="text" class="form-control" name="last_name" id="last_name"  autocomplete="off" placeholder="Enter Last Name" value="{{ Auth::user()->last_name }}" required>
                       </div>
                     </div>
 
                     <div class="row mb-3">
                       <label for="about" class="col-md-4 col-lg-3 col-form-label">About</label>
                       <div class="col-md-8 col-lg-9">
-                        <textarea name="about" class="form-control" id="about" style="height: 100px">Sunt est soluta temporibus accusantium neque nam maiores cumque temporibus. Tempora libero non est unde veniam est qui dolor. Ut sunt iure rerum quae quisquam autem eveniet perspiciatis odit. Fuga sequi sed ea saepe at unde.</textarea>
+                        <textarea name="about" class="form-control" id="about" style="height: 100px">{{ Auth::user()->about }}</textarea>
                       </div>
                     </div>
 
                     <div class="row mb-3">
-                      <label for="company" class="col-md-4 col-lg-3 col-form-label">Company</label>
+                      <label for="company" class="col-md-4 col-lg-3 col-form-label">DOB</label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="company" type="text" class="form-control" id="company" value="Lueilwitz, Wisoky and Leuschke">
+                        <div class="input-group ">
+                         <input type="text" name="dob" value="{{ Auth::user()->dob }}" class="form-control dobdatePicker" autocomplete="off" id="dobdatePicker">
+                        <span class="input-group-text input-group-addon"><div class="icon">
+                           <i class="bi bi-calendar4"></i>
+                           </div></span>
+                      </div>
                       </div>
                     </div>
 
                     <div class="row mb-3">
-                      <label for="Job" class="col-md-4 col-lg-3 col-form-label">Job</label>
+                        @php
+                        $genders = [['key' => 0 , 'value' => 'MALE'],['key' => 1 , 'value' => 'FEMALE']]
+                    @endphp
+                      <label for="department_id" class="col-md-4 col-lg-3 col-form-label">Gender</label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="job" type="text" class="form-control" id="Job" value="Web Designer">
+                        <select class="form-select form-control select2" id="gender" name="gender" placeholder="Select Gender">
+                            <option selected disabled class="input-cstm">Please Select</option>
+                            @foreach ($genders as $gender)
+                                <option @if(!empty(Auth::user()->gender) && Auth::user()->gender == $gender['key']) selected @endif value="{{ $gender['key'] }}">{{ $gender['value'] }}</option>
+                            @endforeach
+                        </select>
                       </div>
                     </div>
 
                     <div class="row mb-3">
-                      <label for="Country" class="col-md-4 col-lg-3 col-form-label">Country</label>
+                      <label for="department_id" class="col-md-4 col-lg-3 col-form-label">Department</label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="country" type="text" class="form-control" id="Country" value="USA">
+                        <select class="form-select form-control select2" id="department_id" name="department_id" placeholder="Select Department" >
+                              <option selected disabled class="input-cstm">Please Select</option>
+                              @if(!empty($data['department']))
+                              @foreach ($data['department'] as $department)
+                              <option @if(Auth::user()->department_id ==$department->id) selected @endif  value="{{ $department->id }}">{{ $department->name }}</option>
+                              @endforeach
+                              @endif
+                          </select>
+                      </div>
+                    </div>
+                    <div class="row mb-3">
+                      <label for="designation_id" class="col-md-4 col-lg-3 col-form-label">Department</label>
+                      <input type="hidden" name="exit_designation_id" id="exit_designation_id" value="{{Auth::user()->designation_id}}">
+                      <div class="col-md-8 col-lg-9">
+                        <select class="form-select form-control select2" id="designation_id" name="designation_id" placeholder="Select First Department" >
+                              <option selected disabled class="input-cstm">Please First select Department</option>
+                          </select>
                       </div>
                     </div>
 
                     <div class="row mb-3">
                       <label for="Address" class="col-md-4 col-lg-3 col-form-label">Address</label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="address" type="text" class="form-control" id="Address" value="A108 Adam Street, New York, NY 535022">
+                        
+                        <textarea name="address" class="form-control" id="address" style="height: 100px">{{ Auth::user()->address }}</textarea>
                       </div>
                     </div>
 
                     <div class="row mb-3">
                       <label for="Phone" class="col-md-4 col-lg-3 col-form-label">Phone</label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="phone" type="text" class="form-control" id="Phone" value="(436) 486-3538 x29071">
+                        <input name="phone" type="text" class="form-control" id="Phone" value="{{ Auth::user()->phone }}">
                       </div>
                     </div>
 
                     <div class="row mb-3">
-                      <label for="Email" class="col-md-4 col-lg-3 col-form-label">Email</label>
+                      <label for="Email" class="col-md-4 col-lg-3 col-form-label">Email<span class="text-danger"> * </span></label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="email" type="email" class="form-control" id="Email" value="k.anderson@example.com">
+                        <input name="email" type="email" class="form-control" id="Email" value="{{Auth::user()->email}}" disabled>
                       </div>
                     </div>
 
-                    <div class="row mb-3">
-                      <label for="Twitter" class="col-md-4 col-lg-3 col-form-label">Twitter Profile</label>
-                      <div class="col-md-8 col-lg-9">
-                        <input name="twitter" type="text" class="form-control" id="Twitter" value="https://twitter.com/#">
-                      </div>
-                    </div>
-
-                    <div class="row mb-3">
-                      <label for="Facebook" class="col-md-4 col-lg-3 col-form-label">Facebook Profile</label>
-                      <div class="col-md-8 col-lg-9">
-                        <input name="facebook" type="text" class="form-control" id="Facebook" value="https://facebook.com/#">
-                      </div>
-                    </div>
-
-                    <div class="row mb-3">
-                      <label for="Instagram" class="col-md-4 col-lg-3 col-form-label">Instagram Profile</label>
-                      <div class="col-md-8 col-lg-9">
-                        <input name="instagram" type="text" class="form-control" id="Instagram" value="https://instagram.com/#">
-                      </div>
-                    </div>
-
-                    <div class="row mb-3">
-                      <label for="Linkedin" class="col-md-4 col-lg-3 col-form-label">Linkedin Profile</label>
-                      <div class="col-md-8 col-lg-9">
-                        <input name="linkedin" type="text" class="form-control" id="Linkedin" value="https://linkedin.com/#">
-                      </div>
-                    </div>
+                   
 
                     <div class="text-center">
                       <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -211,26 +267,27 @@
 
                 <div class="tab-pane fade pt-3" id="profile-change-password">
                   <!-- Change Password Form -->
-                  <form>
-
+                  
+                  <form method="POST" action="{{ route('change-password.store')}}" id="change_password_form">
+                    @csrf
                     <div class="row mb-3">
                       <label for="currentPassword" class="col-md-4 col-lg-3 col-form-label">Current Password</label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="password" type="password" class="form-control" id="currentPassword">
+                        <input name="currentPassword" type="password" class="form-control" id="currentPassword">
                       </div>
                     </div>
 
                     <div class="row mb-3">
                       <label for="newPassword" class="col-md-4 col-lg-3 col-form-label">New Password</label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="newpassword" type="password" class="form-control" id="newPassword">
+                        <input name="password" type="password" class="form-control" id="newPassword">
                       </div>
                     </div>
 
                     <div class="row mb-3">
                       <label for="renewPassword" class="col-md-4 col-lg-3 col-form-label">Re-enter New Password</label>
                       <div class="col-md-8 col-lg-9">
-                        <input name="renewpassword" type="password" class="form-control" id="renewPassword">
+                        <input name="password_confirmation" type="password" class="form-control" id="renewPassword">
                       </div>
                     </div>
 
@@ -250,3 +307,15 @@
       </div>
     </section>
   @endsection
+
+  @push('plugin-scripts')
+ <script src="{{ asset('assets/plugins/select2/select2.min.js') }}"></script>
+ <script src="{{ asset('assets/plugins/bootstrap-datepicker/bootstrap-datepicker.min.js') }}"></script>
+  <script src="{{ asset('assets/js/jquery.validate.min.js')}}"></script>
+@endpush
+@push('custom-scripts')
+ <script src="{{ asset('assets/js/profile/profile.js') }}"></script>
+  <script src="{{ asset('assets/js/profile/change-password.js') }}"></script>
+  <script src="{{ asset('assets/js/select2.js') }}"></script>
+  <script src="{{ asset('assets/js/datepicker.js') }}"></script>
+@endpush

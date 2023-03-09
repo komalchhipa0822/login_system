@@ -9,5 +9,8 @@ $(function() {
 });
 
 if ($(".select2").length) {
-    $(".select2").select2();
+
+    $(".select2").select2({
+        width: "100%",
+    });
 }

@@ -17,7 +17,7 @@ class UserSeeder extends Seeder
     public function run()
     {
         User::insert([
-            'prefix' => 'Mr.',
+            'prefix' => 'Mr',
             'first_name'=>'Henish',
             'last_name'=>'Patel',
             'role' => 1,

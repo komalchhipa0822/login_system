@@ -16,6 +16,10 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->tinyInteger('role')->comment('1=Admin, 2=HR 3=Employee');
+            $table->unsignedBigInteger('department_id')->nullable();
+            $table->foreign('department_id')->references('id')->on('departments');
+            $table->unsignedBigInteger('designation_id')->nullable();
+            $table->foreign('designation_id')->references('id')->on('designations');
             $table->string('email');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
@@ -28,6 +32,7 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->tinyInteger('gender')->comment('0 for male 1 for female')->nullable();
             $table->string('dob')->nullable();
+            $table->string('about')->nullable();
             $table->string('anniversary_date')->nullable();
             $table->string('joining_date')->nullable();
             $table->string('salary')->nullable();
