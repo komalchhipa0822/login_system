@@ -114,6 +114,7 @@ class ProfileController extends Controller
             'last_name' => $request->last_name,
             'email' => Auth::user()->email,
             'dob' => $request->dob,
+            'gender' => $request->gender,
             'about' => $request->about,
             'department_id' => $request->department_id,
             'designation_id' => $request->designation_id,

@@ -196,7 +196,7 @@
 
                     <div class="row mb-3">
                         @php
-                        $genders = [['key' => 0 , 'value' => 'MALE'],['key' => 1 , 'value' => 'FEMALE']]
+                        $genders = [['key' => '2' , 'value' => 'MALE'],['key' => '1' , 'value' => 'FEMALE']]
                     @endphp
                       <label for="department_id" class="col-md-4 col-lg-3 col-form-label">Gender</label>
                       <div class="col-md-8 col-lg-9">
@@ -223,7 +223,7 @@
                       </div>
                     </div>
                     <div class="row mb-3">
-                      <label for="designation_id" class="col-md-4 col-lg-3 col-form-label">Department</label>
+                      <label for="designation_id" class="col-md-4 col-lg-3 col-form-label">Designation</label>
                       <input type="hidden" name="exit_designation_id" id="exit_designation_id" value="{{Auth::user()->designation_id}}">
                       <div class="col-md-8 col-lg-9">
                         <select class="form-select form-control select2" id="designation_id" name="designation_id" placeholder="Select First Department" >

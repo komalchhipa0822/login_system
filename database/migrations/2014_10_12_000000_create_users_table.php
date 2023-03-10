@@ -30,7 +30,7 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->string('image')->nullable();
             $table->text('address')->nullable();
-            $table->tinyInteger('gender')->comment('0 for male 1 for female')->nullable();
+            $table->tinyInteger('gender')->comment('2 for male 1 for female')->nullable();
             $table->string('dob')->nullable();
             $table->string('about')->nullable();
             $table->string('anniversary_date')->nullable();
